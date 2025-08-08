@@ -5,7 +5,7 @@ $tdir = "./templates"
 
 # Usage: Dumps the command usage
 function Usage() {
-    Write-Host("Usage: bashbs.ps1 <project>");
+    Write-Host("Usage: dumpit.ps1 <project>");
     exit 0;
 }
 
@@ -54,7 +54,12 @@ Copy-Item -R "$tdir/$template" $pdir
 Set-Location $pdir
 
 foreach ($file in (Get-ChildItem -Recurse -Force)) {
-    if (!(Test-Path $file -PathType Container)) {
+    
+    # checking for directories and binary files
+    #                               |-----> checking if first 4KB are 0 (likely to be binary)
+    if (!(Test-Path $file -PathType Container) -and 
+        (-not ([System.IO.File]::ReadAllBytes($file.FullName)[0..([Math]::Min(4095, [System.IO.File]::ReadAllBytes($file.FullName).Length - 1))] -contains 0))) 
+    {
         $content = Get-Content $file.FullName -Raw -Encoding UTF8
         $newContent = $content -replace 'PROJECTNAME', $pname
         $newContent | Set-Content -Path $file.FullName -Encoding UTF8
